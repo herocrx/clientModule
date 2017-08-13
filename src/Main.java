@@ -4,7 +4,7 @@ public class Main {
         System.out.println("Client is writing the data!");
         Client clientHubert = new Client(10010);
         clientHubert.createSocket();
-        clientHubert.sendMessage();
-        clientHubert.closeSocket();
+        clientHubert.sendMessageInfo();
+        clientHubert.closeTCPSocket();
     }
 }

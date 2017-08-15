@@ -2,6 +2,7 @@ import com.sun.xml.internal.ws.policy.privateutil.PolicyUtils;
 
 import java.io.*;
 import java.net.*;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class Client
@@ -11,8 +12,6 @@ public class Client
     BufferedReader  in = null;
     BufferedReader stdIn;
     int portNumber;
-
-
     String fileName = null;
     String ipClient  = null;
     String portUDP = null;
@@ -26,7 +25,8 @@ public class Client
     public  void createSocket()
     {
         try {
-            InetAddress address = InetAddress.getByName("IdeaPad-Z510");
+          //  InetAddress address = InetAddress.getByName("IdeaPad-Z510");
+            InetAddress address = InetAddress.getByName("127.0.0.1");
             echoSocket = new Socket(address, portNumber);
             out = new PrintWriter(echoSocket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(echoSocket.getInputStream()));
@@ -43,10 +43,62 @@ public class Client
         }
     }
 
-    public void udpConnection()
-    {
-        int fileSize;
+
+
+    public void udpConnection() {
+
+        DatagramSocket datagramSocket = null;
+        try {
+             datagramSocket = new DatagramSocket(Integer.parseInt(portUDP));
+        }
+        catch(SocketException e)
+        {
+            System.out.println("Socket of UDP cannot be created, problem might be with port UDP");
+        }
+        final int maxPacketSize = 65507;
+        byte[] buffer = new byte[maxPacketSize];
+        DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+        //get information packet
+        try {
+            datagramSocket.receive(packet);
+            System.out.println("Information packet is received!");
+        }
+        catch(IOException e)
+        {
+            System.err.println("Information packet cannot be received!");
+        }
+        String [] informationData = new String(packet.getData(), StandardCharsets.UTF_8).split("\n");
+        FileOutputStream outputFile = null;
+        try
+        {
+            String [] filename = informationData[0].split("Filename:");
+            String [] size     = informationData[1].split("Size:");
+            outputFile = new FileOutputStream(filename[1]);
+            final long numberOfPackets = (Integer.parseInt(size[1]) / maxPacketSize)+1;
+            System.out.format("Number of packets to capture: %s \n",numberOfPackets);
+            for ( int i = 0 ; i < numberOfPackets;i++)
+            {
+                try {
+                    datagramSocket.receive(packet);
+                    outputFile.write(packet.getData());
+                    System.out.format("%s data packet is received. \n", i+1 );
+                }
+                catch(IOException e)
+                {
+                    System.out.println("Packet is not valid");
+                }
+            }
+        }
+        catch(FileNotFoundException e)
+        {
+            System.err.println("File could not be found");
+            e.fillInStackTrace();
+        }
+
+
     }
+
+
 
     public void sendMessageInfo()
     {
@@ -90,7 +142,7 @@ public class Client
         String distinguishPattern = "(%^&)";
 
         String message = distinguishPattern + currentDate + distinguishPattern + fileName + distinguishPattern + ipClient + distinguishPattern + portUDP + distinguishPattern;
-        System.out.format("Message sent by TCP: %s",message);
+        System.out.format("Message sent by TCP: %s \n",message);
         out.println(message);
     }
 
@@ -107,5 +159,4 @@ public class Client
             System.err.println("Connection couldn't be closed");
         }
     }
-
 }

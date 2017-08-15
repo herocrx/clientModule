@@ -6,5 +6,6 @@ public class Main {
         clientHubert.createSocket();
         clientHubert.sendMessageInfo();
         clientHubert.closeTCPSocket();
+        clientHubert.udpConnection();
     }
 }
